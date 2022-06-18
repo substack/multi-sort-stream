@@ -50,3 +50,13 @@ Create a readable `stream` of sorted output from an array of sorted readable `st
 
 If `opts` is a function, it will be used as the `opts.compare` function.
 
+# install
+
+```
+npm install multi-sort-stream
+```
+
+# license
+
+bsd
+
