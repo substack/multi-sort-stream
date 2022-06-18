@@ -4,7 +4,7 @@ merge multiple sorted streams into a single sorted stream
 
 # example
 
-```
+``` js
 var multiSort = require('multi-sort-stream')
 var { Readable, Transform, pipeline } = require('stream')
 var a = Readable.from([5,10,15])
