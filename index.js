@@ -20,8 +20,9 @@ module.exports = function (streams, opts) {
     function onend() {
       if (end[i]) return
       end[i] = true
-      buckets[i] = null
-      need--
+      if (buckets[i] === null) {
+        need--
+      }
       alive--
       check()
     }
@@ -30,7 +31,7 @@ module.exports = function (streams, opts) {
 
   function read(size, next) {
     if (errors.length > 0) return next(errors.shift())
-    if (alive === 0) return next(null, null)
+    if (need === 0 && alive === 0) return next(null, null)
     if (need === 0) return push(next)
     for (var i = 0; i < buckets.length; i++) {
       if (end[i]) continue
@@ -49,16 +50,16 @@ module.exports = function (streams, opts) {
     }
   }
   function push(next) {
-    for (var li = 0; end[li] && li < end.length; li++) {}
+    for (var li = 0; buckets[li] === null && li < buckets.length; li++) {}
     var least = buckets[li]
     for (var i = li+1; i < buckets.length; i++) {
-      if (end[i]) continue
+      if (buckets[i] === null) continue
       if (cmp(buckets[i],least) < 0) {
         least = buckets[i]
         li = i
       }
     }
-    need++
+    if (!end[li]) need++
     buckets[li] = null
     next(null, least)
   }
