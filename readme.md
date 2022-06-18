@@ -36,4 +36,17 @@ output:
 55
 ```
 
+# api
+
+``` js
+var multiSort = require('multi-sort-stream')
+```
+
+## var stream = multiSort(streams, opts)
+
+Create a readable `stream` of sorted output from an array of sorted readable `streams`.
+
+* `opts.compare(a,b)` - comparison function (return -1 or +1)
+
+If `opts` is a function, it will be used as the `opts.compare` function.
 

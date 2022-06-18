@@ -1,0 +1,15 @@
+{
+  "name": "multi-sort-stream",
+  "version": "1.0.0",
+  "description": "merge multiple sorted streams into a single sorted stream",
+  "dependencies": {
+    "from2": "^2.3.0"
+  },
+  "devDependencies": {
+    "tape": "5.5.3"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "license": "bsd"
+}
