@@ -1,6 +1,6 @@
 {
   "name": "multi-sort-stream",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "merge multiple sorted streams into a single sorted stream",
   "dependencies": {
     "from2": "^2.3.0"
