@@ -1,77 +1,95 @@
-var from = require('from2')
+var { Readable } = require('stream')
+module.exports = MultiSort
 
-module.exports = function (streams, opts) {
-  if (typeof opts === 'function') opts = { compare: opts }
+function MultiSort(streams, opts) {
+  var self = this
+  if (!(self instanceof MultiSort)) return new MultiSort(streams, opts)
+  Readable.call(self, { objectMode: true })
   if (!opts) opts = {}
-  var cmp = opts.compare ?? defaultCompare
-  var buckets = Array(streams.length).fill(null)
-  var alive = streams.length
-  var end = Array(streams.length).fill(false)
-  var readSize = null, readNext = null
-  var need = streams.length
-  var errors = []
-  streams.forEach(function (stream,i) {
-    stream.on('readable', check)
-    stream.once('end', onend)
-    stream.on('error', function (err) {
-      errors.push(err)
-      check()
-    })
-    function onend() {
-      if (end[i]) return
-      end[i] = true
-      if (buckets[i] === null) {
-        need--
-      }
-      alive--
-      check()
-    }
-  })
-  return from.obj(read)
+  if (typeof opts === 'function') opts = { compare: opts }
+  self._streams = streams
+  self._compare = opts.compare ?? defaultCompare
 
-  function read(size, next) {
-    if (errors.length > 0) return next(errors.shift())
-    if (need === 0 && alive === 0) return next(null, null)
-    if (need === 0) return push(next)
-    for (var i = 0; i < buckets.length; i++) {
-      if (end[i]) continue
-      if (buckets[i] === null) {
-        var x = streams[i].read()
-        if (x !== null) {
-          buckets[i] = x
-          need--
-        }
+  self._buckets = Array(streams.length).fill(null)
+  self._end = Array(streams.length).fill(false)
+  self._closed = Array(streams.length).fill(false)
+  self._gets = Array(streams.length).fill(null)
+
+  streams.forEach(function (stream, i) {
+    stream.once('end', function () {
+      self._end[i] = true
+      var f = self._gets[i]
+      if (f) {
+        self._gets[i] = null
+        f(null, null, i)
       }
-    }
-    if (need === 0) push(next)
-    else {
-      readSize = size
-      readNext = next
-    }
-  }
-  function push(next) {
-    for (var li = 0; buckets[li] === null && li < buckets.length; li++) {}
-    var least = buckets[li]
-    for (var i = li+1; i < buckets.length; i++) {
-      if (buckets[i] === null) continue
-      if (cmp(buckets[i],least) < 0) {
-        least = buckets[i]
+    })
+    stream.on('readable', function () {
+      var f = self._gets[i]
+      if (!f) return
+      var x = stream.read()
+      if (x === null) {
+        self._end[i] = true
+      }
+      var f = self._gets[i]
+      self._gets[i] = null
+      f(null, x, i)
+    })
+  })
+}
+MultiSort.prototype = Object.create(Readable.prototype)
+
+MultiSort.prototype._get = function (i, cb) {
+  var self = this
+  if (self._end[i]) return cb(null, null, i)
+  var stream = self._streams[i]
+  var x = stream.read()
+  if (x !== null) return cb(null, x, i)
+  if (self._gets[i]) throw new Error(`already waiting on ${i}`)
+  self._gets[i] = cb
+}
+
+MultiSort.prototype._read = function (size) {
+  var self = this
+  self._fill(function (err) {
+    if (err) return self.emit('error', err)
+    var least = null, li = -1
+    for (var i = 0; i < self._buckets.length; i++) {
+      var b = self._buckets[i]
+      if (b === null) continue
+      if (li < 0 || self._compare(b,least) < 0) {
+        least = b
         li = i
       }
     }
-    if (!end[li]) need++
-    buckets[li] = null
-    next(null, least)
-  }
-  function check () {
-    if (readNext !== null) {
-      var size = readSize
-      var next = readNext
-      readSize = null
-      readNext = null
-      read(size, next)
+    if (li >= 0) self._buckets[li] = null
+    self.push(least)
+  })
+}
+
+MultiSort.prototype._fill = function (cb) {
+  var self = this
+  var pending = 1
+  for (var i = 0; i < self._streams.length; i++) {
+    if (self._closed[i]) continue
+    if (self._buckets[i] === null) {
+      pending++
+      self._get(i, onget)
     }
+  }
+  if (--pending === 0) cb()
+
+  function onget(err, x, i) {
+    if (x === null) self._closed[i] = true
+    if (err) {
+      var f = cb
+      cb = noop
+      return f(err)
+    }
+    self._buckets[i] = x
+    if (--pending === 0) cb()
   }
 }
 
 function defaultCompare(a,b) { return a < b ? -1 : +1 }
+function noop() {}

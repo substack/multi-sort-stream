@@ -2,11 +2,9 @@
   "name": "multi-sort-stream",
   "version": "1.0.1",
   "description": "merge multiple sorted streams into a single sorted stream",
-  "dependencies": {
-    "from2": "^2.3.0"
-  },
   "devDependencies": {
-    "tape": "5.5.3"
+    "tape": "^5.5.3",
+    "collect-stream": "^1.2.1"
   },
   "scripts": {
     "test": "tape test/*.js"

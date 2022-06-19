@@ -1,7 +1,7 @@
 var test = require('tape')
 var multiSort = require('../')
 var collect = require('collect-stream')
-var { Readable, Transform, pipeline } = require('stream')
+var { Readable } = require('stream')
 
 test('multi', function (t) {
   t.plan(2)
