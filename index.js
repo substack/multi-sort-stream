@@ -12,7 +12,6 @@ function MultiSort(streams, opts) {
 
   self._buckets = Array(streams.length).fill(null)
   self._end = Array(streams.length).fill(false)
-  self._closed = Array(streams.length).fill(false)
   self._gets = Array(streams.length).fill(null)
 
   streams.forEach(function (stream, i) {
@@ -41,10 +40,9 @@ MultiSort.prototype = Object.create(Readable.prototype)
 
 MultiSort.prototype._get = function (i, cb) {
   var self = this
-  if (self._end[i]) return cb(null, null, i)
-  var stream = self._streams[i]
-  var x = stream.read()
+  var x = self._streams[i].read()
   if (x !== null) return cb(null, x, i)
+  if (self._end[i]) return cb(null, x, i)
   if (self._gets[i]) throw new Error(`already waiting on ${i}`)
   self._gets[i] = cb
 }
@@ -71,7 +69,7 @@ MultiSort.prototype._fill = function (cb) {
   var self = this
   var pending = 1
   for (var i = 0; i < self._streams.length; i++) {
-    if (self._closed[i]) continue
+    if (self._end[i]) continue
     if (self._buckets[i] === null) {
       pending++
       self._get(i, onget)
@@ -80,7 +78,6 @@ MultiSort.prototype._fill = function (cb) {
   if (--pending === 0) cb()
 
   function onget(err, x, i) {
-    if (x === null) self._closed[i] = true
     if (err) {
       var f = cb
       cb = noop
