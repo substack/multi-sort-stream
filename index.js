@@ -8,7 +8,7 @@ function MultiSort(streams, opts) {
   if (!opts) opts = {}
   if (typeof opts === 'function') opts = { compare: opts }
   self._streams = streams
-  self._compare = opts.compare ?? defaultCompare
+  self._compare = opts.compare != null ? opts.compare : defaultCompare
 
   self._buckets = Array(streams.length).fill(null)
   self._end = Array(streams.length).fill(false)
