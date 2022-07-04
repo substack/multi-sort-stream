@@ -1,6 +1,6 @@
 {
   "name": "multi-sort-stream",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "merge multiple sorted streams into a single sorted stream",
   "devDependencies": {
     "tape": "^5.5.3",
